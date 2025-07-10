@@ -27,12 +27,15 @@ sleep 10
 echo "检查服务状态..."
 docker-compose ps
 
+# 从 .env 文件读取配置
+source .env
+
 echo ""
 echo "MinIO 服务已启动！"
 echo "访问地址："
-echo "  - MinIO Console: http://localhost:9001"
-echo "  - 用户名: minioadmin"
-echo "  - 密码: minioadmin123"
+echo "  - MinIO Console: http://localhost:${MINIO_CONSOLE_PORT:-9001}"
+echo "  - 用户名: ${MINIO_ROOT_USER:-minioadmin}"
+echo "  - 密码: ${MINIO_ROOT_PASSWORD:-minioadmin123}"
 echo ""
 echo "使用 MinIO Client:"
-echo "  docker exec -it minio-client /usr/bin/mc" 
+echo "  docker exec -it ${MINIO_CLIENT_CONTAINER_NAME:-minio-client} /usr/bin/mc" 
