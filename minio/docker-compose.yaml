@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  minio:
+    image: "minio/minio:RELEASE.2025-06-13T11-33-47Z"
+    container_name: minio-server
+    ports:
+      - "9000:9000"   # MinIO API 端口
+      - "9001:9001"   # MinIO Console 端口
+    volumes:
+      - "./minio/data:/data"
+      # 如果需要分布式存储，可以使用多个卷：
+      # - "./minio/data1:/data1"
+      # - "./minio/data2:/data2"
+      # - "./minio/data3:/data3"
+      # - "./minio/data4:/data4"
+    environment:
+      # 管理员凭据 - 请修改为安全的值
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+      # Console 重定向 URL
+      - MINIO_BROWSER_REDIRECT_URL=http://localhost:9001
+      # 可选：设置默认区域
+      - MINIO_REGION_NAME=us-east-1
+      # 可选：启用 HTTPS（需要证书）
+      # - MINIO_OPTS=--certs-dir /root/.minio/certs
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - minio-network
+
+  # 可选：MinIO Client (mc) 用于管理
+  minio-client:
+    image: "minio/mc:RELEASE.2025-05-21T01-59-54Z"
+    container_name: minio-client
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+      /usr/bin/mc mb myminio/test-bucket --ignore-existing;
+      /usr/bin/mc policy set public myminio/test-bucket;
+      echo 'MinIO client setup completed';
+      tail -f /dev/null
+      "
+    networks:
+      - minio-network
+
+networks:
+  minio-network:
+    driver: bridge
+
+volumes:
+  minio-data:
+    driver: local
